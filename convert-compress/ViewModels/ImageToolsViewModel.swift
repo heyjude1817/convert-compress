@@ -97,8 +97,8 @@ final class ImageToolsViewModel: ObservableObject {
     // MARK: - Initialization
     
     init() {
-        setupComparisonObservation()
         loadPersistedState()
+        setupComparisonObservation()
         setupPersistenceObservation()
         loadPresets()
     }
