@@ -145,6 +145,9 @@ struct ComparisonView: View {
                     break
                 }
             }
+            .onTapGesture(count: 1) {
+                sliderPosition = min(max(0, lastPointerLocation.x / containerSize.width), 1)
+            }
             .onTapGesture(count: 2) {
                 zoomPanState.reset(animated: true)
             }

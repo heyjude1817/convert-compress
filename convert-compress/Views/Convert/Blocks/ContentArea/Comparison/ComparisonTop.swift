@@ -17,6 +17,10 @@ struct ComparisonTop: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 4) {
+            if let currentIndex = vm.images.firstIndex(where: { $0.id == asset.id }) {
+                SingleLineOverlayBadge(text: "\(currentIndex + 1)/\(vm.images.count)")
+            }
+            
             SingleLineOverlayBadge(text: fileName)
                 .matchedGeometryEffect(
                     id: "filename-\(asset.id)",

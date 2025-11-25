@@ -35,10 +35,6 @@ struct ComparisonSplitHandle: View {
                     .fill(.regularMaterial)
                     .frame(width: 3)
                     .frame(maxWidth: .infinity)
-                    .overlay(
-                        Rectangle()
-                            .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-                    )
                 Circle()
                     .fill(.regularMaterial)
                     .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
