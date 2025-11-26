@@ -5024,7 +5024,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Форматирование"
+            "value" : "Формат"
           }
         },
         "sv" : {
@@ -5975,7 +5975,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Сохранить оригинальный формат"
+            "value" : "Исходный формат"
           }
         },
         "sv" : {
@@ -6215,7 +6215,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Длинная сторона"
+            "value" : "Дл. сторона"
           }
         },
         "sv" : {
@@ -7526,7 +7526,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Перезаписать"
+            "value" : "Заменить"
           }
         },
         "sv" : {
@@ -8241,7 +8241,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Предустановки"
+            "value" : "Пресеты"
           }
         },
         "sv" : {
@@ -8479,7 +8479,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Предварительный просмотр"
+            "value" : "Превью"
           }
         },
         "sv" : {
@@ -10618,7 +10618,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Изменить размер"
+            "value" : "Размер"
           }
         },
         "sv" : {
@@ -13122,7 +13122,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Предложение"
+            "value" : "Авто"
           }
         },
         "sv" : {

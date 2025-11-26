@@ -10,31 +10,27 @@ struct ComparisonSplitHandle: View {
     var body: some View {
         if #available(macOS 26.0, *) {
             ZStack {
-                GlassEffectContainer {
-                    Rectangle()
-                        .glassEffect(.clear)
-                        .frame(width: 3)
-                        .frame(maxWidth: .infinity)
-                    
-                    Circle()
-                        .glassEffect(.clear)
-                        .frame(width: currentHandleSize, height: currentHandleSize)
-                        .onHover { hovering in
-                            isHovering = hovering
-                            if hovering {
-                                NSCursor.frameResize(position: .right, directions: .all).push()
-                            } else {
-                                NSCursor.pop()
-                            }
+                Rectangle()
+                    .glassEffect(.clear)
+                    .frame(width: 3)
+                
+                Circle()
+                    .glassEffect(.clear)
+                    .frame(width: currentHandleSize, height: currentHandleSize)
+                    .onHover { hovering in
+                        isHovering = hovering
+                        if hovering {
+                            NSCursor.frameResize(position: .right, directions: .all).push()
+                        } else {
+                            NSCursor.pop()
                         }
-                }
+                    }
             }.animation(Theme.Animations.fastSpring(), value: isHovering)
         } else {
             ZStack {
                 Rectangle()
                     .fill(.regularMaterial)
                     .frame(width: 3)
-                    .frame(maxWidth: .infinity)
                 Circle()
                     .fill(.regularMaterial)
                     .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
