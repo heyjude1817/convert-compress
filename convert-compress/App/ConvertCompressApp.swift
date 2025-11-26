@@ -51,5 +51,8 @@ struct ConvertCompressApp: App {
         .environmentObject(vm)
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .commands {
+            AppCommands()
+        }
     }
 }

@@ -27,11 +27,32 @@ struct ComparisonTop: View {
                     in: heroNamespace
                 )
             
-            SingleLineOverlayBadge(text: "\(zoomPanState.zoomPercent)%")
+            SingleLineOverlayBadge(text: "\(zoomPanState.pixelZoomPercent)%")
                 .opacity(showZoomBadge ? 1 : 0)
                 .animation(.easeInOut(duration: 0.2), value: showZoomBadge)
             
             Spacer()
+            
+            // 1:1 Actual Size Button
+            Button(action: {
+                zoomPanState.toggleActualSize()
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(.regularMaterial)
+                        .overlay(
+                            Circle()
+                                .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
+                        )
+                    Text("1:1")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(zoomPanState.isAtActualSize ? .primary : .secondary)
+                }
+            }
+            .buttonStyle(.plain)
+            .frame(width: 32, height: 32)
+            .contentShape(Circle())
+            .help(zoomPanState.isAtActualSize ? String(localized: "Fit to window") : String(localized: "Zoom to actual size (1:1)"))
             
             Button(action: {
                 sliderPosition = sliderPosition < 0.5 ? 1.0 : 0.0

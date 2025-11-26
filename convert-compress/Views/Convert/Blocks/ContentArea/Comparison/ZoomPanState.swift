@@ -10,6 +10,7 @@ final class ZoomPanState: ObservableObject {
     @Published var offset: CGPoint = .zero
     @Published var containerSize: CGSize = .zero
     @Published var imageSize: CGSize = .zero
+    @Published var actualPixelSize: CGSize = .zero
     
     // MARK: - Internal Properties
     
@@ -18,11 +19,18 @@ final class ZoomPanState: ObservableObject {
     
     // MARK: - Constants
     
-    let minScaleMultiplier: CGFloat = 0.5  // Can zoom out to 50% of fit
+    let minScaleMultiplier: CGFloat = 0.1  // Can zoom out to 50% of fit
     let maxScale: CGFloat = 20.0
     
+    /// Zoom percentage relative to fit-to-container (100% = image fits container)
     var zoomPercent: Int {
         Int(round(scale * 100))
+    }
+    
+    /// Zoom percentage relative to actual pixel size (100% = 1:1 pixels)
+    var pixelZoomPercent: Int {
+        guard oneToOneScale > 0 else { return 100 }
+        return Int(round(scale / oneToOneScale * 100))
     }
     
     var minScale: CGFloat {
@@ -33,11 +41,25 @@ final class ZoomPanState: ObservableObject {
         scale > baseScale * 1.01
     }
     
+    /// Scale that displays the image at 1:1 pixel ratio (actual size)
+    var oneToOneScale: CGFloat {
+        guard imageSize.width > 0, actualPixelSize.width > 0 else { return 1.0 }
+        return actualPixelSize.width / imageSize.width
+    }
+    
+    /// Whether current scale is at 1:1 pixel ratio
+    var isAtActualSize: Bool {
+        abs(scale - oneToOneScale) < 0.01
+    }
+    
     // MARK: - Initialization
     
-    func updateContainerAndImage(containerSize: CGSize, imageSize: CGSize) {
+    func updateContainerAndImage(containerSize: CGSize, imageSize: CGSize, actualPixelSize: CGSize? = nil) {
         self.containerSize = containerSize
         self.imageSize = imageSize
+        if let actualPixelSize {
+            self.actualPixelSize = actualPixelSize
+        }
         calculateBaseScale()
     }
     
@@ -97,6 +119,20 @@ final class ZoomPanState: ObservableObject {
         } else {
             scale = newScale
             offset = .zero
+        }
+    }
+    
+    /// Zoom to 1:1 actual pixel size (100% real pixels)
+    func zoomToActualSize(animated: Bool = true) {
+        zoomTo(oneToOneScale, animated: animated)
+    }
+    
+    /// Toggle between fit-to-container and 1:1 actual size
+    func toggleActualSize(animated: Bool = true) {
+        if isAtActualSize {
+            reset(animated: animated)
+        } else {
+            zoomToActualSize(animated: animated)
         }
     }
     

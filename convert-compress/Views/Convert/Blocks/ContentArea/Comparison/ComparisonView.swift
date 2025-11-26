@@ -23,6 +23,7 @@ struct ComparisonView: View {
     @State private var lastDragLocation: CGPoint = .zero
     @State private var lastPointerLocation: CGPoint = .zero
     @State private var handleDragStartPosition: CGFloat? = nil
+    @State private var longPressActive: Bool = false
     
     private var preview: ComparisonPreviewState { vm.comparisonPreview }
     private var fileName: String { asset.originalURL.lastPathComponent }
@@ -87,7 +88,11 @@ struct ComparisonView: View {
             .onChange(of: containerSize) { _, newSize in
                 updateZoomPanContainer(size: newSize, imageFrame: imageFrame)
             }
-            .onChange(of: imageFrame.size) { _, newSize in
+            .onChange(of: imageFrame.size) { _, _ in
+                updateZoomPanContainer(size: containerSize, imageFrame: imageFrame)
+            }
+            .onChange(of: preview.processedSize) { _, _ in
+                // Update 1:1 zoom calculation when processed size changes (e.g., resize)
                 updateZoomPanContainer(size: containerSize, imageFrame: imageFrame)
             }
         }
@@ -149,8 +154,18 @@ struct ComparisonView: View {
                 sliderPosition = min(max(0, lastPointerLocation.x / containerSize.width), 1)
             }
             .onTapGesture(count: 2) {
-                zoomPanState.reset(animated: true)
+                // Toggle between fit and 1:1 pixel zoom
+                zoomPanState.toggleActualSize(animated: true)
             }
+            .onLongPressGesture(minimumDuration: 0.15, pressing: { isPressing in
+                if !isPressing && longPressActive {
+                    longPressActive = false
+                    sliderPosition = 0.0
+                }
+            }, perform: {
+                longPressActive = true
+                sliderPosition = 1.0
+            })
             .gesture(panGesture())
             .simultaneousGesture(magnificationGesture(containerSize: containerSize))
         }
@@ -249,9 +264,14 @@ struct ComparisonView: View {
     // MARK: - Zoom/Pan Helpers
     
     private func updateZoomPanContainer(size: CGSize, imageFrame: CGRect) {
+        // Use processed size for 1:1 zoom when available (e.g., after resize)
+        // Fall back to original size if no processed image yet
+        let actualSize = preview.processedSize ?? preview.originalSize
+        
         zoomPanState.updateContainerAndImage(
             containerSize: size,
-            imageSize: imageFrame.size
+            imageSize: imageFrame.size,
+            actualPixelSize: actualSize
         )
     }
     
@@ -380,6 +400,10 @@ struct ComparisonView: View {
                 return nil
             case 8: // C key - toggle comparison slider
                 sliderPosition = sliderPosition < 0.5 ? 1.0 : 0.0
+                return nil
+            case 18: // 1 key - toggle 1:1 actual size zoom
+                zoomPanState.toggleActualSize()
+                Haptics.alignment()
                 return nil
             default:
                 return event
