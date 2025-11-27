@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import StoreKit
 
 @MainActor
 @Observable
@@ -32,7 +33,7 @@ final class RatingCoordinator {
     }
     
     func rateApp() {
-        RatingService.requestReview()
+        SKStoreReviewController.requestReview()
         dismiss()
     }
     

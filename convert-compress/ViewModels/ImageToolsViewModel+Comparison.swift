@@ -189,14 +189,14 @@ extension ImageToolsViewModel {
             )
         }
         
-        // Process image in background
+        // Process image in background (in-memory)
         do {
             let pipeline = buildPipeline()
             let (processed, processedPixelSize) = try await Task.detached(priority: .userInitiated) {
-                let temporaryURL = try pipeline.renderTemporaryURL(on: asset)
-                let image = NSImage(contentsOf: temporaryURL)
+                let encoded = try pipeline.renderEncodedData(on: asset)
+                let image = NSImage(data: encoded.data)
                 // Get actual pixel dimensions (not points) for accurate 1:1 zoom
-                let pixelSize = ImageMetadata.pixelSize(for: temporaryURL)
+                let pixelSize = ImageMetadata.pixelSize(for: encoded.data)
                 return (image, pixelSize)
             }.value
             

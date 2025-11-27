@@ -1,13 +1,5 @@
 import Foundation
 
-// MARK: - Byte Formatting
-
-extension Int {
-    func formattedBytes() -> String {
-        formatBytes(self)
-    }
-}
-
 func formatBytes(_ bytes: Int) -> String {
     let kb = 1024.0
     let mb = kb * 1024.0

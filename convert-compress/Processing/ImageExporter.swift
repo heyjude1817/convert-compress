@@ -69,18 +69,6 @@ struct ImageExporter {
         return (data, actualUTI)
     }
 
-    static func export(ciImage: CIImage, originalURL: URL, format: ImageFormat?, compressionQuality: Double?, stripMetadata: Bool = false) throws -> URL {
-        let result = try encodeToData(ciImage: ciImage, originalURL: originalURL, format: format, compressionQuality: compressionQuality, stripMetadata: stripMetadata)
-
-        let tempDir = FileManager.default.temporaryDirectory
-        let ext = ImageIOCapabilities.shared.preferredFilenameExtension(for: result.uti)
-        let base = originalURL.deletingPathExtension().lastPathComponent
-        let tempFilename = base + "_tmp_" + String(UUID().uuidString.prefix(8)) + "." + ext
-        let outputURL = tempDir.appendingPathComponent(tempFilename)
-        try result.data.write(to: outputURL, options: [.atomic])
-        return outputURL
-    }
-
     static func inferFormat(from url: URL) -> ImageFormat? {
         return ImageIOCapabilities.shared.formatForURL(url)
     }

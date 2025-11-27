@@ -86,12 +86,14 @@ struct ImagesGridView_Previews: PreviewProvider {
         color.setFill()
         NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
         image.unlockFocus()
+        // Uses system /tmp which macOS cleans automatically
+        let systemTmp = URL(fileURLWithPath: "/tmp")
         guard let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff),
               let data = rep.representation(using: .png, properties: [:]) else {
-            return FileManager.default.temporaryDirectory.appendingPathComponent("preview_\(UUID().uuidString).png")
+            return systemTmp.appendingPathComponent("preview_\(UUID().uuidString).png")
         }
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("preview_\(UUID().uuidString).png")
+        let url = systemTmp.appendingPathComponent("preview_\(UUID().uuidString).png")
         try? data.write(to: url)
         return url
     }
