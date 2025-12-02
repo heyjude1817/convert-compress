@@ -47,14 +47,14 @@ extension ImageToolsViewModel {
 
     func prefillPixelsIfPossible() {
         guard let firstAsset = images.first,
-              let firstSize = ImageMetadata.pixelSize(for: firstAsset.originalURL) else {
+              let firstSize = firstAsset.originalPixelSize else {
             return
         }
         
         let targetSize = (width: Int(firstSize.width.rounded()), height: Int(firstSize.height.rounded()))
         
         let allSameSize = images.allSatisfy { asset in
-            guard let size = ImageMetadata.pixelSize(for: asset.originalURL) else {
+            guard let size = asset.originalPixelSize else {
                 return false
             }
             return Int(size.width.rounded()) == targetSize.width &&

@@ -45,19 +45,23 @@ struct FormatControl: View {
         let shape = Capsule()
         
         Menu {
+            
             recentSection()
             pinnedSection()
+            Button(String(localized: "Original")) { selectFormat(nil) }
+                .keyboardShortcut(.init("o"), modifiers: [])
+            Divider()
+            
             moreSection()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "photo.on.rectangle.angled.fill")
                     .font(Theme.Fonts.button)
-                    .foregroundStyle(vm.selectedFormat != nil ? Color.accentColor : .primary)
                 
                 Text(selectedLabel)
-                    .foregroundStyle(.primary)
                     .font(Theme.Fonts.button)
             }
+            .foregroundStyle(vm.selectedFormat != nil ? Color.accentColor : .primary)
         }
         .menuStyle(.borderlessButton)
         .help(vm.selectedFormat?.fullName ?? "")
@@ -143,6 +147,8 @@ private extension FormatControl {
                 return event
             }
             switch chars {
+            case "o":
+                selectFormat(nil); return nil
             case "p":
                 if let fmt = pinnedFormats.first(where: { $0.utType == .png }) { selectFormat(fmt); return nil }
             case "j":

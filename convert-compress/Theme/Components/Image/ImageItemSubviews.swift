@@ -114,7 +114,7 @@ struct HoverControls: View {
     }
     
     private var revealButton: some View {
-        Button(action: { ClipboardService.revealInFinder(asset.workingURL) }) {
+        Button(action: { NSWorkspace.shared.activateFileViewerSelecting([asset.workingURL]) }) {
             Image(systemName: "folder.fill")
         }
         .buttonStyle(.plain)
@@ -176,8 +176,8 @@ struct HoverControls: View {
         Task.detached {
             let result: CopyState
             do {
-                let encoded = try pipeline.renderEncodedData(on: localAsset)
-                ClipboardService.copyEncodedImage(data: encoded.data, uti: encoded.uti)
+                let tempURL = try pipeline.renderTemporaryURL(on: localAsset)
+                ClipboardService.copyFileURL(tempURL)
                 result = .success
             } catch {
                 result = .error

@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 struct TopBar: View {
     @State private var purchaseManager = PurchaseManager.shared
@@ -36,7 +37,7 @@ struct TopBar: View {
                     }
                     
                     Button {
-                        RatingService.requestReview()
+                        SKStoreReviewController.requestReview()
                     } label: {
                         Label("Rate App", systemImage: "star")
                     }

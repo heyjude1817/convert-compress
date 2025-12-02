@@ -189,15 +189,16 @@ extension ImageToolsViewModel {
             )
         }
         
-        // Process image in background
+        // Process image in background (in-memory)
         do {
             let pipeline = buildPipeline()
-            let processed = try await Task.detached(priority: .userInitiated) {
-                let temporaryURL = try pipeline.renderTemporaryURL(on: asset)
-                return NSImage(contentsOf: temporaryURL)
+            let (processed, processedPixelSize) = try await Task.detached(priority: .userInitiated) {
+                let encoded = try pipeline.renderEncodedData(on: asset)
+                let image = NSImage(data: encoded.data)
+                // Get actual pixel dimensions (not points) for accurate 1:1 zoom
+                let pixelSize = ImageMetadata.pixelSize(for: encoded.data)
+                return (image, pixelSize)
             }.value
-            
-            let processedSize = processed?.size
             
             guard await isStillSelected(assetID) else { return }
             
@@ -209,7 +210,7 @@ extension ImageToolsViewModel {
                     errorMessage: nil,
                     cropRegion: cropRegion,
                     originalSize: originalSize,
-                    processedSize: processedSize
+                    processedSize: processedPixelSize
                 )
             }
         } catch {

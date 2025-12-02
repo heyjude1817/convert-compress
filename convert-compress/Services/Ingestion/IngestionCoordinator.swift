@@ -245,7 +245,8 @@ enum IngestionCoordinator {
             return nil
         }
         
-        let url = FileManager.default.temporaryDirectory
+        // Uses system /tmp which macOS cleans automatically
+        let url = URL(fileURLWithPath: "/tmp")
             .appendingPathComponent(prefix + UUID().uuidString + ".png")
         
         try? data.write(to: url)

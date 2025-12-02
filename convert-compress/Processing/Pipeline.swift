@@ -51,16 +51,11 @@ struct ProcessingPipeline {
 
     // Apply operations and return a temporary file URL for the processed image without committing to a destination
     func renderTemporaryURL(on asset: ImageAsset) throws -> URL {
-        let currentURL = asset.originalURL
-        guard let token = SandboxAccessToken(url: currentURL) else {
-            throw ImageOperationError.permissionDenied
-        }
-        defer { token.stop() }
-        // Process and encode, then write to a temporary file
-        let encoded = try processAndEncode(from: currentURL)
+        // processAndEncode handles its own sandbox token
+        let encoded = try processAndEncode(from: asset.originalURL)
         let tempDir = FileManager.default.temporaryDirectory
         let ext = ImageIOCapabilities.shared.preferredFilenameExtension(for: encoded.uti)
-        let base = currentURL.deletingPathExtension().lastPathComponent
+        let base = asset.originalURL.deletingPathExtension().lastPathComponent
         let tempFilename = base + "_tmp_" + String(UUID().uuidString.prefix(8)) + "." + ext
         let outputURL = tempDir.appendingPathComponent(tempFilename)
         try encoded.data.write(to: outputURL, options: [.atomic])

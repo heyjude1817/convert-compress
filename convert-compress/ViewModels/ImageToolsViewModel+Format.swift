@@ -14,9 +14,9 @@ extension ImageToolsViewModel {
         updateRestrictions(for: format)
         guard allowedSquareSizes != nil else { return }
         
-        // Choose a reference size from first asset
+        // Choose a reference size from first asset (prefer cached value)
         guard let first = images.first else { return }
-        let srcSize = ImageMetadata.pixelSize(for: first.originalURL) ?? first.originalPixelSize ?? .zero
+        let srcSize = first.originalPixelSize ?? .zero
         
         let caps = ImageIOCapabilities.shared
         if let fmt = format, !caps.isValidPixelSize(srcSize, for: fmt.utType) {

@@ -131,9 +131,11 @@ extension ImageToolsViewModel {
         UsageTracker.shared.recordPipelineApplied(imageCount: processedCount)
         RatingCoordinator.shared.checkAndShowIfNeeded()
 
-        let urlsToReveal = imagesToCommit.compactMap { $0.isEdited ? $0.workingURL : nil }
-        if !urlsToReveal.isEmpty {
-            NSWorkspace.shared.activateFileViewerSelecting(urlsToReveal)
+        if UserDefaults.standard.object(forKey: PreferencesStore.revealExportInFinder) as? Bool ?? true {
+            let urlsToReveal = imagesToCommit.compactMap { $0.isEdited ? $0.workingURL : nil }
+            if !urlsToReveal.isEmpty {
+                NSWorkspace.shared.activateFileViewerSelecting(urlsToReveal)
+            }
         }
     }
 
