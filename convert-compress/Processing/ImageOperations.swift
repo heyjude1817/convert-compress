@@ -26,6 +26,21 @@ func loadCIImageApplyingOrientation(from url: URL) throws -> CIImage {
     throw ImageOperationError.loadFailed
 }
 
+// MARK: - Lanczos Scaling Helper
+
+/// Applies Lanczos scaling with edge clamping to prevent border artifacts.
+/// Clamping extends edge pixels infinitely so the filter doesn't sample undefined pixels.
+private func lanczosScale(_ input: CIImage, scale: Float, aspectRatio: Float, targetSize: CGSize) throws -> CIImage {
+    let lanczos = CIFilter.lanczosScaleTransform()
+    lanczos.inputImage = input.clampedToExtent()
+    lanczos.scale = scale
+    lanczos.aspectRatio = aspectRatio
+    guard let scaled = lanczos.outputImage else { throw ImageOperationError.exportFailed }
+    return scaled.cropped(to: CGRect(origin: .zero, size: targetSize))
+}
+
+// MARK: - Operations
+
 struct ResizeOperation: ImageOperation {
     enum Mode { case percent(Double); case pixels(width: Int?, height: Int?); case longEdge(Int) }
     let mode: Mode
@@ -39,17 +54,11 @@ struct ResizeOperation: ImageOperation {
     }
 
     func transformed(_ input: CIImage) throws -> CIImage {
-        let originalExtent = input.extent
-        let targetSize = ResizeMath.targetSize(for: originalExtent.size, input: resizeInput, noUpscale: true)
-        
-        let scaleX = targetSize.width / originalExtent.width
-        let scaleY = targetSize.height / originalExtent.height
-        let lanczos = CIFilter.lanczosScaleTransform()
-        lanczos.inputImage = input
-        lanczos.scale = Float(min(scaleX, scaleY))
-        lanczos.aspectRatio = Float(scaleX / scaleY)
-        guard let output = lanczos.outputImage else { throw ImageOperationError.exportFailed }
-        return output
+        let original = input.extent.size
+        let target = ResizeMath.targetSize(for: original, input: resizeInput, noUpscale: true)
+        let scaleX = target.width / original.width
+        let scaleY = target.height / original.height
+        return try lanczosScale(input, scale: Float(min(scaleX, scaleY)), aspectRatio: Float(scaleX / scaleY), targetSize: target)
     }
 }
 
@@ -70,12 +79,7 @@ struct ConstrainSizeOperation: ImageOperation {
         let target = CGSize(width: side, height: side)
         let scaleX = target.width / current.width
         let scaleY = target.height / current.height
-        let lanczos = CIFilter.lanczosScaleTransform()
-        lanczos.inputImage = input
-        lanczos.scale = Float(min(scaleX, scaleY))
-        lanczos.aspectRatio = Float(scaleX / scaleY)
-        guard let output = lanczos.outputImage else { throw ImageOperationError.exportFailed }
-        return output
+        return try lanczosScale(input, scale: Float(min(scaleX, scaleY)), aspectRatio: Float(scaleX / scaleY), targetSize: target)
     }
 }
 
@@ -95,34 +99,27 @@ struct CropOperation: ImageOperation {
     
     // Resize to cover target dimensions, then center crop to exact size
     func transformed(_ input: CIImage) throws -> CIImage {
-        let extent = input.extent
-        let currentWidth = extent.width
-        let currentHeight = extent.height
+        let current = input.extent.size
+        let target = CGSize(width: targetWidth, height: targetHeight)
         
-        let targetW = CGFloat(targetWidth)
-        let targetH = CGFloat(targetHeight)
+        // Scale to cover (use max to ensure full coverage)
+        let scale = max(target.width / current.width, target.height / current.height)
+        let scaledSize = CGSize(width: current.width * scale, height: current.height * scale)
         
-        // Calculate scale to COVER the target dimensions (not fit within)
-        let scaleX = targetW / currentWidth
-        let scaleY = targetH / currentHeight
-        let scale = max(scaleX, scaleY) // Use max to cover, not min to fit
-        
-        // Resize to cover the target dimensions
+        // Scale with clamping
         let lanczos = CIFilter.lanczosScaleTransform()
-        lanczos.inputImage = input
+        lanczos.inputImage = input.clampedToExtent()
         lanczos.scale = Float(scale)
         lanczos.aspectRatio = 1.0
         guard let scaled = lanczos.outputImage else { throw ImageOperationError.exportFailed }
         
-        let scaledExtent = scaled.extent
-        
-        // Now center crop to exact target dimensions
-        // Round x and y to avoid sub-pixel positioning that can cause off-by-one errors
-        let x = ((scaledExtent.width - targetW) / 2).rounded(.toNearestOrEven)
-        let y = ((scaledExtent.height - targetH) / 2).rounded(.toNearestOrEven)
-        
-        let cropRect = CGRect(x: x, y: y, width: targetW, height: targetH)
-        return scaled.cropped(to: cropRect)
+        // Center crop to target size
+        let cropOrigin = CGPoint(
+            x: ((scaledSize.width - target.width) / 2).rounded(.toNearestOrEven),
+            y: ((scaledSize.height - target.height) / 2).rounded(.toNearestOrEven)
+        )
+        let cropRect = CGRect(origin: cropOrigin, size: target)
+        return scaled.cropped(to: cropRect).transformed(by: CGAffineTransform(translationX: -cropOrigin.x, y: -cropOrigin.y))
     }
 }
 
