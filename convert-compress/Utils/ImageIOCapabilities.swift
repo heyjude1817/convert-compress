@@ -26,8 +26,9 @@ final class ImageIOCapabilities {
         // ImageIO may not advertise WebP as a destination type on all systems
         self.writableTypes.insert(UTType.webP.identifier)
 
-        // SVG is rasterized via WebKit at ingestion time; register as readable input
-        self.readableTypes.insert(UTType.svg.identifier)
+        for utType in VectorImageSupport.allSupportedUTTypes {
+            self.readableTypes.insert(utType.identifier)
+        }
     }
 
     func supportsWriting(utType: UTType) -> Bool {

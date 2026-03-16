@@ -15,7 +15,7 @@ struct PreviewEstimator {
                   compressionPercent: Double,
                   selectedFormat: ImageFormat?) -> PreviewInfo {
         let baseSize: CGSize? = asset.originalPixelSize
-        let isSVG = SVGRasterizer.isSVG(asset.originalURL)
+        let isVector = VectorImageSupport.isVectorImage(asset.originalURL)
         let targetSize: CGSize? = {
             guard let base = baseSize else { return CGSize(width: 0, height: 0) }
             
@@ -27,7 +27,7 @@ struct PreviewEstimator {
             }
             
             let hasResizeInput = Int(resizeLongEdge) != nil || Int(resizeWidth) != nil || Int(resizeHeight) != nil
-            let effectiveBase = (isSVG && hasResizeInput) ? SVGRasterizer.generousSize(for: base) : base
+            let effectiveBase = (isVector && hasResizeInput) ? VectorImageSupport.generousSize(for: base) : base
             var size = ResizeMath.targetSize(for: effectiveBase, input: input, noUpscale: true)
             
             // In crop mode with both dimensions, show target crop size

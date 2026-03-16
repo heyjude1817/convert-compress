@@ -17,8 +17,8 @@ struct ThumbnailGenerator {
 
         let fileSizeBytes = try? standardizedURL.resourceValues(forKeys: [.fileSizeKey]).fileSize
 
-        if SVGRasterizer.isSVG(standardizedURL) {
-            return loadSVG(url: standardizedURL, maxPixelSize: pixelMax, scale: scale, fileSizeBytes: fileSizeBytes)
+        if VectorImageSupport.isVectorImage(standardizedURL) {
+            return loadVectorImage(url: standardizedURL, maxPixelSize: pixelMax, scale: scale, fileSizeBytes: fileSizeBytes)
         }
 
         var pixelSize: CGSize?
@@ -50,13 +50,13 @@ struct ThumbnailGenerator {
         return Output(thumbnail: thumbnail, pixelSize: pixelSize, fileSizeBytes: fileSizeBytes)
     }
 
-    private static func loadSVG(url: URL, maxPixelSize: Int, scale: CGFloat, fileSizeBytes: Int?) -> Output {
+    private static func loadVectorImage(url: URL, maxPixelSize: Int, scale: CGFloat, fileSizeBytes: Int?) -> Output {
         guard let token = SandboxAccessToken(url: url) else {
             return Output(thumbnail: nil, pixelSize: nil, fileSizeBytes: fileSizeBytes)
         }
         defer { token.stop() }
 
-        guard let (thumb, intrinsic) = try? SVGRasterizer.loadThumbnail(for: url, maxPixelSize: maxPixelSize) else {
+        guard let (thumb, intrinsic) = try? VectorImageSupport.loadThumbnail(for: url, maxPixelSize: maxPixelSize) else {
             return Output(thumbnail: nil, pixelSize: nil, fileSizeBytes: fileSizeBytes)
         }
 
