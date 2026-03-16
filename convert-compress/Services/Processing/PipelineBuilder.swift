@@ -1,10 +1,11 @@
 import Foundation
 
 struct PipelineBuilder {
-    func build(configuration: ProcessingConfiguration, exportDirectory: URL?) -> ProcessingPipeline {
+    func build(configuration: ProcessingConfiguration, exportDirectory: URL?, folderStructureRoot: URL? = nil) -> ProcessingPipeline {
         var pipeline = ProcessingPipeline()
         pipeline.removeMetadata = configuration.removeMetadata
         pipeline.exportDirectory = exportDirectory
+        pipeline.folderStructureRoot = folderStructureRoot
         pipeline.finalFormat = configuration.selectedFormat
         pipeline.compressionPercent = configuration.compressionPercent
 
