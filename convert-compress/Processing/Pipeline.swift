@@ -74,9 +74,7 @@ struct ProcessingPipeline {
         }
         defer { token.stop() }
 
-        guard var ci = try? loadCIImageApplyingOrientation(from: originalURL) else {
-            throw ImageOperationError.loadFailed
-        }
+        var ci = try loadCIImage(from: originalURL, operations: operations)
         for op in operations {
             ci = try op.transformed(ci)
         }
