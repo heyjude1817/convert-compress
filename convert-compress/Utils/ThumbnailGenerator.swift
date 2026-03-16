@@ -15,10 +15,14 @@ struct ThumbnailGenerator {
         let scale = await MainActor.run { NSScreen.main?.backingScaleFactor ?? 2.0 }
         let pixelMax = max(1, Int(maxPixelSize * scale))
 
+        let fileSizeBytes = try? standardizedURL.resourceValues(forKeys: [.fileSizeKey]).fileSize
+
+        if SVGRasterizer.isSVG(standardizedURL) {
+            return loadSVG(url: standardizedURL, maxPixelSize: pixelMax, scale: scale, fileSizeBytes: fileSizeBytes)
+        }
+
         var pixelSize: CGSize?
         var thumbnail: NSImage?
-
-        let fileSizeBytes = try? standardizedURL.resourceValues(forKeys: [.fileSizeKey]).fileSize
 
         let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
         guard let source = CGImageSourceCreateWithURL(standardizedURL as CFURL, sourceOptions as CFDictionary) else {
@@ -44,5 +48,18 @@ struct ThumbnailGenerator {
         }
 
         return Output(thumbnail: thumbnail, pixelSize: pixelSize, fileSizeBytes: fileSizeBytes)
+    }
+
+    private static func loadSVG(url: URL, maxPixelSize: Int, scale: CGFloat, fileSizeBytes: Int?) -> Output {
+        guard let token = SandboxAccessToken(url: url) else {
+            return Output(thumbnail: nil, pixelSize: nil, fileSizeBytes: fileSizeBytes)
+        }
+        defer { token.stop() }
+
+        guard let (thumb, intrinsic) = try? SVGRasterizer.loadThumbnail(for: url, maxPixelSize: maxPixelSize) else {
+            return Output(thumbnail: nil, pixelSize: nil, fileSizeBytes: fileSizeBytes)
+        }
+
+        return Output(thumbnail: thumb, pixelSize: intrinsic, fileSizeBytes: fileSizeBytes)
     }
 }

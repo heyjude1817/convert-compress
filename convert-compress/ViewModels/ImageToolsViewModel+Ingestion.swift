@@ -96,7 +96,7 @@ extension ImageToolsViewModel {
         }
 
         Self.ingestionLogger.debug("Ingest new URLs: \(newURLs.count, privacy: .public)")
-        
+
         updateSourceDirectory(from: newURLs)
         let newAssets = newURLs.map { ImageAsset(url: $0) }
         prepareIngestionState(for: newAssets.count)

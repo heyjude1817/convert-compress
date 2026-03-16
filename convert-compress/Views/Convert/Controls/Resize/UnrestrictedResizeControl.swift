@@ -29,7 +29,10 @@ struct UnrestrictedResizeControl: View {
     }
     
     private func basePixelSizeForCurrentSelection() -> CGSize? {
-        let sizes = vm.images.compactMap { $0.originalPixelSize }
+        let sizes: [CGSize] = vm.images.compactMap { asset in
+            guard let size = asset.originalPixelSize else { return nil }
+            return SVGRasterizer.isSVG(asset.originalURL) ? SVGRasterizer.generousSize(for: size) : size
+        }
         guard !sizes.isEmpty else { return nil }
         let maxWidth = sizes.map { $0.width }.max() ?? 0
         let maxHeight = sizes.map { $0.height }.max() ?? 0

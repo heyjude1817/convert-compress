@@ -17,8 +17,25 @@ protocol ImageOperation {
     func transformed(_ input: CIImage) throws -> CIImage
 }
 
-// Load a CIImage while applying EXIF/TIFF orientation so pixels are normalized to 'up'
-func loadCIImageApplyingOrientation(from url: URL) throws -> CIImage {
+extension [ImageOperation] {
+    var containsResizeOperation: Bool {
+        contains { $0 is ResizeOperation || $0 is CropOperation || $0 is ConstrainSizeOperation }
+    }
+}
+
+/// Loads a CIImage from any supported source, including vector formats (SVG, etc.).
+/// For vector images, rasterizes at generous size when resize operations are present,
+/// otherwise at intrinsic size. For raster images, applies EXIF orientation.
+func loadCIImage(from url: URL, operations: [ImageOperation] = []) throws -> CIImage {
+    if VectorImageSupport.isVectorImage(url) {
+        let intrinsic = try VectorImageSupport.intrinsicSize(for: url)
+        let size = operations.containsResizeOperation ? VectorImageSupport.generousSize(for: intrinsic) : intrinsic
+        return try VectorImageSupport.loadAsCIImage(from: url, targetSize: size)
+    }
+    return try loadCIImageApplyingOrientation(from: url)
+}
+
+private func loadCIImageApplyingOrientation(from url: URL) throws -> CIImage {
     let options: [CIImageOption: Any] = [
         .applyOrientationProperty: true
     ]

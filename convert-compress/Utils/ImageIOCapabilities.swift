@@ -7,7 +7,7 @@ import SDWebImageWebPCoder
 final class ImageIOCapabilities {
     static let shared = ImageIOCapabilities()
 
-    private let readableTypes: Set<String>
+    private var readableTypes: Set<String>
     private var writableTypes: Set<String>
 
     private init() {
@@ -26,6 +26,8 @@ final class ImageIOCapabilities {
         // ImageIO may not advertise WebP as a destination type on all systems
         self.writableTypes.insert(UTType.webP.identifier)
 
+        // SVG is rasterized via WebKit at ingestion time; register as readable input
+        self.readableTypes.insert(UTType.svg.identifier)
     }
 
     func supportsWriting(utType: UTType) -> Bool {
