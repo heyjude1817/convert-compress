@@ -26,6 +26,10 @@ final class ImageIOCapabilities {
         // ImageIO may not advertise WebP as a destination type on all systems
         self.writableTypes.insert(UTType.webP.identifier)
 
+        // Ensure AVIF appears as readable + writable via SDWebImageAVIFCoder
+        self.readableTypes.insert(UTType.avif.identifier)
+        self.writableTypes.insert(UTType.avif.identifier)
+
         for utType in VectorImageSupport.allSupportedUTTypes {
             self.readableTypes.insert(utType.identifier)
         }
@@ -67,9 +71,10 @@ final class ImageIOCapabilities {
             UTType.png.identifier: 1,
             UTType.heic.identifier: 2,
             UTType.webP.identifier: 3,
-            UTType.tiff.identifier: 4,
-            UTType.bmp.identifier: 5,
-            UTType.gif.identifier: 6
+            UTType.avif.identifier: 4,
+            UTType.tiff.identifier: 5,
+            UTType.bmp.identifier: 6,
+            UTType.gif.identifier: 7
         ]
         return results.sorted { a, b in
             let ai = priority[a.utType.identifier] ?? Int.max
@@ -87,8 +92,8 @@ final class ImageIOCapabilities {
     func capabilities(forUTType utType: UTType) -> FormatCapabilities {
         let isReadable = supportsReading(utType: utType)
         let isWritable = supportsWriting(utType: utType)
-        let supportsQuality = (utType == .jpeg) || (utType == UTType.heic) || (utType == UTType.webP)
-        let supportsLossless = (utType == .png) || (utType == .tiff) || (utType == .bmp) || (utType == .gif) || (utType == UTType.webP)
+        let supportsQuality = (utType == .jpeg) || (utType == UTType.heic) || (utType == UTType.webP) || (utType == .avif)
+        let supportsLossless = (utType == .png) || (utType == .tiff) || (utType == .bmp) || (utType == .gif) || (utType == UTType.webP) || (utType == .avif)
         let supportsMetadata = supportsPrivacySensitiveMetadata(utType: utType)
         let supportsAlpha = supportsAlphaChannel(utType: utType)
         let resizeRestricted = sizeRestrictions(forUTType: utType) != nil
@@ -145,7 +150,7 @@ final class ImageIOCapabilities {
 
     // MARK: - Alpha channel support
     private func supportsAlphaChannel(utType: UTType) -> Bool {
-        if utType == .png || utType == .tiff || utType == .gif || utType == UTType.heic || utType == UTType.heif || utType == UTType.webP || utType == .bmp || utType == .icns { // BMP can have alpha in some variants; be permissive
+        if utType == .png || utType == .tiff || utType == .gif || utType == UTType.heic || utType == UTType.heif || utType == UTType.webP || utType == .avif || utType == .bmp || utType == .icns {
             return true
         }
         if utType == .jpeg { return false }

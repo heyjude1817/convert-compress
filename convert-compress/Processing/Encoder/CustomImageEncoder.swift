@@ -9,7 +9,8 @@ protocol CustomImageEncoder {
 
 struct CustomImageEncoderRegistry {
     private static let encoders: [CustomImageEncoder] = [
-        WebPEncoder()
+        WebPEncoder(),
+        AVIFEncoder()
     ]
 
     static func encoder(for utType: UTType) -> CustomImageEncoder? {
