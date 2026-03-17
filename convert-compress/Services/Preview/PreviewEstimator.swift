@@ -15,6 +15,7 @@ struct PreviewEstimator {
                   compressionPercent: Double,
                   selectedFormat: ImageFormat?) -> PreviewInfo {
         let baseSize: CGSize? = asset.originalPixelSize
+        let isVector = VectorImageSupport.isVectorImage(asset.originalURL)
         let targetSize: CGSize? = {
             guard let base = baseSize else { return CGSize(width: 0, height: 0) }
             
@@ -25,8 +26,9 @@ struct PreviewEstimator {
                 input = .pixels(width: Int(resizeWidth), height: Int(resizeHeight))
             }
             
-            // Preview should not upscale
-            var size = ResizeMath.targetSize(for: base, input: input, noUpscale: true)
+            let hasResizeInput = Int(resizeLongEdge) != nil || Int(resizeWidth) != nil || Int(resizeHeight) != nil
+            let effectiveBase = (isVector && hasResizeInput) ? VectorImageSupport.generousSize(for: base) : base
+            var size = ResizeMath.targetSize(for: effectiveBase, input: input, noUpscale: true)
             
             // In crop mode with both dimensions, show target crop size
             if resizeMode == .crop, let w = Int(resizeWidth), let h = Int(resizeHeight) {

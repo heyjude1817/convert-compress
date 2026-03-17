@@ -6,6 +6,7 @@ struct ProcessingPipeline {
     var operations: [ImageOperation] = []
     var removeMetadata: Bool = false
     var exportDirectory: URL? = nil
+    var folderStructureRoot: URL? = nil
     var finalFormat: ImageFormat? = nil
     var compressionPercent: Double? = nil
 
@@ -29,6 +30,9 @@ struct ProcessingPipeline {
 
         // Write into destination directory and atomically replace/move into place
         let destParent = plan.directory
+        if !FileManager.default.fileExists(atPath: destParent.path) {
+            try FileManager.default.createDirectory(at: destParent, withIntermediateDirectories: true)
+        }
         guard let accessToken = SandboxAccessManager.shared.beginAccess(for: destParent) else {
             throw ImageOperationError.permissionDenied
         }
@@ -74,9 +78,7 @@ struct ProcessingPipeline {
         }
         defer { token.stop() }
 
-        guard var ci = try? loadCIImageApplyingOrientation(from: originalURL) else {
-            throw ImageOperationError.loadFailed
-        }
+        var ci = try loadCIImage(from: originalURL, operations: operations)
         for op in operations {
             ci = try op.transformed(ci)
         }
@@ -117,7 +119,19 @@ private extension ProcessingPipeline {
         let destinationURL: URL
         if let exportDir = exportDirectory {
             let base = currentURL.deletingPathExtension().lastPathComponent
-            destinationURL = exportDir.appendingPathComponent(base + "." + ext)
+            if let root = folderStructureRoot {
+                let assetDir = currentURL.deletingLastPathComponent().standardizedFileURL
+                let sourcePath = root.standardizedFileURL.path
+                let assetPath = assetDir.path
+                let relative = assetPath.hasPrefix(sourcePath)
+                    ? String(assetPath.dropFirst(sourcePath.count))
+                        .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                    : ""
+                let targetDir = relative.isEmpty ? exportDir : exportDir.appendingPathComponent(relative)
+                destinationURL = targetDir.appendingPathComponent(base + "." + ext)
+            } else {
+                destinationURL = exportDir.appendingPathComponent(base + "." + ext)
+            }
         } else if isTempSource {
             let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first ?? FileManager.default.homeDirectoryForCurrentUser
             let base = currentURL.deletingPathExtension().lastPathComponent

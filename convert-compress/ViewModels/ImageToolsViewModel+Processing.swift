@@ -4,9 +4,11 @@ import AppKit
 
 extension ImageToolsViewModel {
     func buildPipeline() -> ProcessingPipeline {
+        let keepStructure = UserDefaults.standard.bool(forKey: PreferencesStore.keepFolderStructure)
         let pipeline = PipelineBuilder().build(
             configuration: currentConfiguration,
-            exportDirectory: exportDirectory
+            exportDirectory: exportDirectory,
+            folderStructureRoot: keepStructure ? sourceDirectory : nil
         )
         if let fmt = selectedFormat { bumpRecentFormats(fmt) }
         return pipeline
