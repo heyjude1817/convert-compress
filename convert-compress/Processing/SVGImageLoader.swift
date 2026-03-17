@@ -37,6 +37,23 @@ struct SVGImageLoader: VectorImageLoader {
         return nil
     }
 
+    /// Detects SVG markup in a string and writes it to a temporary .svg file.
+    static func writeTempFile(from string: String) -> URL? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isSVG = trimmed.hasPrefix("<svg") || (trimmed.hasPrefix("<?xml") && trimmed.contains("<svg"))
+        guard isSVG, let data = trimmed.data(using: .utf8) else { return nil }
+        
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("paste_" + UUID().uuidString + ".svg")
+        
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+    
     // MARK: - Private Helpers
 
     private static func resolveIntrinsicSize(svgContent: String, nsImage: NSImage?) -> CGSize {
