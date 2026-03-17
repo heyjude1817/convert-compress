@@ -1,5 +1,5 @@
 {
-  "originHash" : "165a933d696b0a58aa429639c931cce04cce63a2bbca2bfbc8aa2f01fab9997c",
+  "originHash" : "edacfc43369527f7c1d472f7ec12ea6a13c4225814b059e0fd3103c426287dee",
   "pins" : [
     {
       "identity" : "libaom-xcode",
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/SDWebImage/SDWebImageWebPCoder.git",
       "state" : {
-        "revision" : "12d83edbcc795fb7b5c0c3cb74d739108d3357d2",
-        "version" : "0.15.0"
+        "revision" : "f534cfe830a7807ecc3d0332127a502426cfa067",
+        "version" : "0.14.6"
       }
     }
   ],
