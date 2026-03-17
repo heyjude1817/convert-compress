@@ -83,10 +83,19 @@ enum IngestionCoordinator {
     /// - Returns: Array of image file URLs
     static func collectURLsFromPasteboard(_ pasteboard: NSPasteboard = .general) -> [URL] {
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL] {
-            return urls.flatMap { DirectoryEnumerator(url: $0).collectSupportedImages() }
+            let results = urls
+                .filter { $0.isFileURL }
+                .flatMap { DirectoryEnumerator(url: $0).collectSupportedImages() }
+            if !results.isEmpty { return results }
         }
         
-        if let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage] {
+        if let string = pasteboard.string(forType: .string),
+           let url = SVGImageLoader.writeTempFile(from: string) {
+            return [url]
+        }
+        
+        if let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
+           !images.isEmpty {
             return images.compactMap { writeTempPNG(from: $0) }
         }
         
@@ -234,22 +243,22 @@ enum IngestionCoordinator {
     // MARK: - Image Conversion
     
     /// Writes a temporary PNG file for the given NSImage.
-    /// - Parameters:
-    ///   - image: The image to convert
-    ///   - prefix: Filename prefix (default: "paste_")
-    /// - Returns: URL of the temporary PNG file, or nil if conversion failed
     private static func writeTempPNG(from image: NSImage, prefix: String = "paste_") -> URL? {
         guard let tiff = image.tiffRepresentation,
               let rep = NSBitmapImageRep(data: tiff),
-              let data = rep.representation(using: .png, properties: [:]) else {
+              let data = rep.representation(using: .png, properties: [:]),
+              !data.isEmpty else {
             return nil
         }
         
-        // Uses system /tmp which macOS cleans automatically
-        let url = URL(fileURLWithPath: "/tmp")
+        let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(prefix + UUID().uuidString + ".png")
         
-        try? data.write(to: url)
-        return url
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
     }
 } 
