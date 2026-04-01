@@ -67,15 +67,19 @@ extension ImageToolsViewModel {
 
             self.beginExport(total: targets.count)
 
-            let hint = self.recommendedConcurrency()
+            let baseHint = self.recommendedConcurrency()
+            let memoryMonitor = MemoryPressureMonitor()
             var updatedImages = self.imagesSnapshot()
 
             await withTaskGroup(of: (ImageAsset, ImageAsset)?.self) { group in
                 var iterator = targets.makeIterator()
-                let boost = max(1, Int(Double(hint) * 1.5))
+                let adjustedHint = max(2, Int(Double(baseHint) * memoryMonitor.concurrencyMultiplier()))
+                let boost = max(1, Int(Double(adjustedHint) * 1.5))
                 let limit = min(boost, targets.count)
 
                 func addNextTask(from iterator: inout IndexingIterator<[ImageAsset]>, to group: inout TaskGroup<(ImageAsset, ImageAsset)?>) {
+                    // Skip enqueuing new work under critical memory pressure
+                    if memoryMonitor.level == .critical { return }
                     guard let asset = iterator.next() else { return }
                     group.addTask(priority: .utility) {
                         do {
@@ -100,10 +104,16 @@ extension ImageToolsViewModel {
                     self.incrementExportProgress()
 
                     addNextTask(from: &iterator, to: &group)
+                    // Under critical pressure, wait for all in-flight tasks to finish
+                    // before enqueuing more (effectively serializes remaining work)
+                    if memoryMonitor.level == .critical {
+                        await Task.yield()
+                    }
                     await Task.yield()
                 }
             }
 
+            memoryMonitor.stop()
             self.finishExport(with: updatedImages)
         }
     }
