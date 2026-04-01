@@ -6,11 +6,13 @@ import UniformTypeIdentifiers
 import ImageIO
 import Vision
 
-enum ImageOperationError: Error {
+enum ImageOperationError: Error, Equatable {
     case loadFailed
     case exportFailed
     case backgroundRemovalUnavailable
     case permissionDenied
+    case writeFailed(String)
+    case insufficientDisk
 }
 
 protocol ImageOperation {

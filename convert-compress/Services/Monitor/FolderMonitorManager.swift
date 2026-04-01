@@ -66,19 +66,28 @@ final class FolderMonitorManager: ObservableObject {
         save()
     }
 
+    func updateOutputURL(id: UUID, outputURL: URL?) {
+        guard let idx = folders.firstIndex(where: { $0.id == id }) else { return }
+        folders[idx].outputBookmarkData = try? outputURL?.bookmarkData(
+            options: .withSecurityScope,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+        save()
+    }
+
     // MARK: - Watcher Management
 
     private func startWatcher(for folder: MonitoredFolder) {
+        watchers[folder.id]?.stop()
+        stopAccess(for: folder.id)
         guard let url = folder.resolveURL() else { return }
         _ = url.startAccessingSecurityScopedResource()
         accessingURLs[folder.id] = url
 
-        let presetID = folder.presetID
-        let outputURL = folder.resolveOutputURL()
-
         let watcher = FolderWatcher(url: url) { [weak self] newFiles in
             Task { @MainActor [weak self] in
-                self?.processNewFiles(newFiles, presetID: presetID, outputURL: outputURL, sourceURL: url)
+                self?.processNewFiles(newFiles, folderID: folder.id, sourceURL: url)
             }
         }
         watchers[folder.id] = watcher
@@ -93,7 +102,10 @@ final class FolderMonitorManager: ObservableObject {
 
     // MARK: - Auto Processing
 
-    private func processNewFiles(_ urls: [URL], presetID: UUID?, outputURL: URL?, sourceURL: URL) {
+    private func processNewFiles(_ urls: [URL], folderID: UUID, sourceURL: URL) {
+        let folder = folders.first { $0.id == folderID }
+        let presetID = folder?.presetID
+        let outputURL = folder?.resolveOutputURL()
         let config: ProcessingConfiguration
         if let presetID, let preset = PresetsStore.shared.load().first(where: { $0.id == presetID }) {
             config = preset.configuration

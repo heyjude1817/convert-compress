@@ -45,13 +45,14 @@ extension ImageToolsViewModel {
         let pipeline = buildPipeline()
         let targets = images
         guard !targets.isEmpty else { return }
+        let plannedDestinations = pipeline.plannedDestinationURLs(for: targets)
 
         // Preflight replace confirmation (single dialog for all files)
-        if !preflightReplaceIfNecessary(pipeline: pipeline, targets: targets) {
+        if !preflightReplaceIfNecessary(targets: targets, plannedDestinations: plannedDestinations) {
             return
         }
 
-        let directories = uniqueDestinationDirectories(for: targets, pipeline: pipeline)
+        let directories = uniqueDestinationDirectories(for: targets, plannedDestinations: plannedDestinations)
 
         Task(priority: .userInitiated) { [weak self] in
             guard let self else { return }
@@ -82,24 +83,13 @@ extension ImageToolsViewModel {
                     // Skip enqueuing new work under critical memory pressure
                     if memoryMonitor.level == .critical { return }
                     guard let asset = iterator.next() else { return }
+                    let destinationURL = plannedDestinations[asset.id] ?? pipeline.plannedDestinationURL(for: asset)
                     group.addTask(priority: .utility) {
                         do {
-                            let updated = try pipeline.run(on: asset)
+                            let updated = try pipeline.run(on: asset, destinationURL: destinationURL)
                             return .success((asset, updated))
                         } catch {
-                            let name = asset.originalURL.lastPathComponent
-                            let reason: ProcessingError.Reason
-                            if let opError = error as? ImageOperationError {
-                                switch opError {
-                                case .loadFailed: reason = .loadFailed
-                                case .exportFailed: reason = .encodeFailed
-                                case .permissionDenied: reason = .permissionDenied
-                                case .backgroundRemovalUnavailable: reason = .unknown(error.localizedDescription)
-                                }
-                            } else {
-                                reason = .unknown(error.localizedDescription)
-                            }
-                            return .failure(ProcessingError(assetName: name, reason: reason))
+                            return .failure(ProcessingError.from(error, assetName: asset.originalURL.lastPathComponent))
                         }
                     }
                 }
@@ -177,9 +167,9 @@ extension ImageToolsViewModel {
     }
 
     /// Returns true if export should proceed, false if user cancelled.
-    private func preflightReplaceIfNecessary(pipeline: ProcessingPipeline, targets: [ImageAsset]) -> Bool {
+    private func preflightReplaceIfNecessary(targets: [ImageAsset], plannedDestinations: [UUID: URL]) -> Bool {
         guard !targets.isEmpty else { return true }
-        let planned: [URL] = targets.map { pipeline.plannedDestinationURL(for: $0) }
+        let planned: [URL] = targets.compactMap { plannedDestinations[$0.id] }
         // Only unique destinations matter for conflict check
         let uniquePlanned = Array(Set(planned))
         let fm = FileManager.default
@@ -227,8 +217,8 @@ extension ImageToolsViewModel {
         return presentAlert()
     }
 
-    func uniqueDestinationDirectories(for targets: [ImageAsset], pipeline: ProcessingPipeline) -> [URL] {
-        let destinations = targets.map { pipeline.plannedDestinationURL(for: $0).deletingLastPathComponent().standardizedFileURL }
+    func uniqueDestinationDirectories(for targets: [ImageAsset], plannedDestinations: [UUID: URL]) -> [URL] {
+        let destinations = targets.compactMap { plannedDestinations[$0.id]?.deletingLastPathComponent().standardizedFileURL }
         var seen: Set<URL> = []
         var result: [URL] = []
         for directory in destinations {
@@ -250,5 +240,4 @@ extension ImageToolsViewModel {
         alert.runModal()
     }
 }
-
 

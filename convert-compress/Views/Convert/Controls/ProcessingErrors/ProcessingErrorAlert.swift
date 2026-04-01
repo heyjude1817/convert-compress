@@ -2,18 +2,34 @@ import SwiftUI
 
 struct ProcessingErrorAlert: ViewModifier {
     @Binding var errors: [ProcessingError]
-
-    private var isPresented: Binding<Bool> {
-        Binding(
-            get: { !errors.isEmpty },
-            set: { if !$0 { errors.removeAll() } }
-        )
-    }
+    @State private var isShowingSummary = false
+    @State private var isShowingDetails = false
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: isPresented) {
+            .onChange(of: errors.count) { _, newCount in
+                guard newCount > 0 else {
+                    isShowingSummary = false
+                    isShowingDetails = false
+                    return
+                }
+                isShowingSummary = true
+            }
+            .alert(String(localized: "Some images failed to process"), isPresented: $isShowingSummary) {
+                Button(String(localized: "Show Details")) {
+                    isShowingDetails = true
+                }
+                Button(String(localized: "Dismiss"), role: .cancel) {
+                    errors.removeAll()
+                }
+            } message: {
+                Text(String(format: String(localized: "%d of the images could not be processed."), errors.count))
+            }
+            .sheet(isPresented: $isShowingDetails, onDismiss: {
+                errors.removeAll()
+            }) {
                 ProcessingErrorSheet(errors: errors) {
+                    isShowingDetails = false
                     errors.removeAll()
                 }
             }

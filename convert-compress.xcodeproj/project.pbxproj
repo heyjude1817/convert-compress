@@ -17,14 +17,14 @@
 			containerPortal = B77ECCBC2E45573200C28347 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = B77ECCC32E45573200C28347;
-			remoteInfo = "image-tools";
+			remoteInfo = "convert-compress";
 		};
 		B77ECCDD2E45573400C28347 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B77ECCBC2E45573200C28347 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = B77ECCC32E45573200C28347;
-			remoteInfo = "image-tools";
+			remoteInfo = "convert-compress";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -127,7 +127,7 @@
 				B7438E632E7DA6F3003E7442 /* SDWebImageWebPCoder */,
 				B7D9FFF82F696EF00049799A /* SDWebImageAVIFCoder */,
 			);
-			productName = "image-tools";
+			productName = "convert-compress";
 			productReference = B7B69C582E83FC5700BE3883 /* convert-compress.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -173,7 +173,7 @@
 			name = "convert-compress-ui-tests";
 			packageProductDependencies = (
 			);
-			productName = "image-toolsUITests";
+			productName = "convert-compressUITests";
 			productReference = B7B69C5A2E83FC5700BE3883 /* convert-compress-ui-tests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
@@ -533,7 +533,7 @@
 				DEVELOPMENT_TEAM = 9AU33YWN79;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "raffistudio.convert-compress-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -542,7 +542,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/image-tools.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/image-tools";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/convert-compress.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/convert-compress";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -557,7 +557,7 @@
 				DEVELOPMENT_TEAM = 9AU33YWN79;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "raffistudio.convert-compress-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -566,7 +566,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/image-tools.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/image-tools";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/convert-compress.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/convert-compress";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;
@@ -580,7 +580,7 @@
 				DEVELOPMENT_TEAM = 9AU33YWN79;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "raffistudio.image-toolsUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -589,7 +589,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "image-tools";
+				TEST_TARGET_NAME = "convert-compress";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -603,7 +603,7 @@
 				DEVELOPMENT_TEAM = 9AU33YWN79;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
-				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "raffistudio.image-toolsUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -612,7 +612,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = "image-tools";
+				TEST_TARGET_NAME = "convert-compress";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;

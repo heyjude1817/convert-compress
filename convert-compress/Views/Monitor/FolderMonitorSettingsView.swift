@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct FolderMonitorSettingsView: View {
     @ObservedObject private var manager = FolderMonitorManager.shared
@@ -41,6 +42,7 @@ struct FolderMonitorSettingsView: View {
                                 presets: presets,
                                 onToggle: { manager.toggleActive(id: folder.id) },
                                 onPresetChange: { presetID in manager.updatePreset(id: folder.id, presetID: presetID) },
+                                onOutputChange: { outputURL in manager.updateOutputURL(id: folder.id, outputURL: outputURL) },
                                 onRemove: { manager.remove(id: folder.id) }
                             )
                         }
@@ -76,50 +78,74 @@ struct FolderMonitorRow: View {
     let presets: [Preset]
     let onToggle: () -> Void
     let onPresetChange: (UUID?) -> Void
+    let onOutputChange: (URL?) -> Void
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Toggle("", isOn: Binding(
-                get: { folder.isActive },
-                set: { _ in onToggle() }
-            ))
-            .toggleStyle(.switch)
-            .labelsHidden()
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Toggle("", isOn: Binding(
+                    get: { folder.isActive },
+                    set: { _ in onToggle() }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(folderName)
-                    .font(.system(.body, design: .monospaced))
-                    .lineLimit(1)
-                    .truncationMode(.head)
-
-                if let path = folderPath {
-                    Text(path)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(folderName)
+                        .font(.system(.body, design: .monospaced))
                         .lineLimit(1)
                         .truncationMode(.head)
+
+                    if let path = folderPath {
+                        Text(path)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.head)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Picker("", selection: Binding(
+                    get: { folder.presetID },
+                    set: { onPresetChange($0) }
+                )) {
+                    Text(String(localized: "Default")).tag(nil as UUID?)
+                    ForEach(presets) { preset in
+                        Text(preset.displayName).tag(preset.id as UUID?)
+                    }
+                }
+                .frame(width: 130)
+                .labelsHidden()
+
+                Button(role: .destructive, action: onRemove) {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 8) {
+                Text(String(localized: "Output"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(outputLabel)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer()
+                Button(String(localized: "Choose Output Folder")) {
+                    chooseOutputFolder()
+                }
+                .buttonStyle(.bordered)
+                if folder.resolveOutputURL() != nil {
+                    Button(String(localized: "Reset Output")) {
+                        onOutputChange(nil)
+                    }
+                    .buttonStyle(.borderless)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Picker("", selection: Binding(
-                get: { folder.presetID },
-                set: { onPresetChange($0) }
-            )) {
-                Text(String(localized: "Default")).tag(nil as UUID?)
-                ForEach(presets) { preset in
-                    Text(preset.displayName).tag(preset.id as UUID?)
-                }
-            }
-            .frame(width: 130)
-            .labelsHidden()
-
-            Button(role: .destructive, action: onRemove) {
-                Image(systemName: "trash")
-                    .foregroundStyle(.red)
-            }
-            .buttonStyle(.plain)
         }
         .padding(8)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
@@ -131,5 +157,22 @@ struct FolderMonitorRow: View {
 
     private var folderPath: String? {
         folder.resolveURL()?.deletingLastPathComponent().path
+    }
+
+    private var outputLabel: String {
+        folder.resolveOutputURL()?.path ?? String(localized: "Same Folder")
+    }
+
+    private func chooseOutputFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = String(localized: "Select output location for processed images")
+        panel.directoryURL = folder.resolveOutputURL() ?? folder.resolveURL()
+
+        if panel.runModal() == .OK, let url = panel.url {
+            onOutputChange(url)
+        }
     }
 }

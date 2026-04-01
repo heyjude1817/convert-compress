@@ -47,15 +47,26 @@ extension ImageToolsViewModel {
         guard original > 0, estimated > 0 else { return nil }
         let ratio = compressionRatio ?? 0
         let percent = Int((ratio * 100).rounded())
+        let count = images.count
         let originalStr = ByteCountFormatter.string(fromByteCount: Int64(original), countStyle: .file)
         let estimatedStr = ByteCountFormatter.string(fromByteCount: Int64(estimated), countStyle: .file)
+        let delta = percent > 0 ? "-\(percent)%" : percent < 0 ? "+\(abs(percent))%" : "0%"
+        let format = count == 1
+            ? String(localized: "1 image · %@ → %@ (%@)")
+            : String(localized: "%d images · %@ → %@ (%@)")
         if percent > 0 {
-            return "\(originalStr) → \(estimatedStr) (-\(percent)%)"
-        } else if percent < 0 {
-            return "\(originalStr) → \(estimatedStr) (+\(abs(percent))%)"
+            return count == 1
+                ? String(format: format, originalStr, estimatedStr, delta)
+                : String(format: format, count, originalStr, estimatedStr, delta)
         }
-        return "\(originalStr) → \(estimatedStr)"
+        if percent < 0 {
+            return count == 1
+                ? String(format: format, originalStr, estimatedStr, delta)
+                : String(format: format, count, originalStr, estimatedStr, delta)
+        }
+        return count == 1
+            ? String(format: format, originalStr, estimatedStr, delta)
+            : String(format: format, count, originalStr, estimatedStr, delta)
     }
 }
-
 
