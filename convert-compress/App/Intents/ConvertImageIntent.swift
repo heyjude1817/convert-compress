@@ -10,7 +10,7 @@ struct ConvertImageIntent: AppIntent {
     @Parameter(title: "Format")
     var format: ImageFormatEntity
 
-    @Parameter(title: "Quality", default: 85, controlStyle: .slider, inclusiveRange: (1, 100))
+    @Parameter(title: "Quality", default: 85)
     var quality: Int
 
     static var parameterSummary: some ParameterSummary {

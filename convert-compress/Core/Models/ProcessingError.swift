@@ -1,7 +1,7 @@
 import Foundation
 
 /// Describes a per-image processing failure without interrupting the batch.
-struct ProcessingError: Identifiable {
+struct ProcessingError: Identifiable, Error {
     let id = UUID()
     let assetName: String
     let reason: Reason
