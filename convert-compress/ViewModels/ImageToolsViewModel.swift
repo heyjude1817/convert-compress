@@ -63,10 +63,11 @@ final class ImageToolsViewModel: ObservableObject {
     var estimationTask: Task<Void, Never>? = nil
     
     // MARK: - Export Progress
-    
+
     @Published var isExporting: Bool = false
     @Published var exportCompleted: Int = 0
     @Published var exportTotal: Int = 0
+    @Published var processingErrors: [ProcessingError] = []
     
     var exportFraction: Double {
         guard isExporting, exportTotal > 0 else { return 0 }

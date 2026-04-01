@@ -70,23 +70,36 @@ extension ImageToolsViewModel {
             let baseHint = self.recommendedConcurrency()
             let memoryMonitor = MemoryPressureMonitor()
             var updatedImages = self.imagesSnapshot()
+            var errors: [ProcessingError] = []
 
-            await withTaskGroup(of: (ImageAsset, ImageAsset)?.self) { group in
+            await withTaskGroup(of: Result<(ImageAsset, ImageAsset), ProcessingError>.self) { group in
                 var iterator = targets.makeIterator()
                 let adjustedHint = max(2, Int(Double(baseHint) * memoryMonitor.concurrencyMultiplier()))
                 let boost = max(1, Int(Double(adjustedHint) * 1.5))
                 let limit = min(boost, targets.count)
 
-                func addNextTask(from iterator: inout IndexingIterator<[ImageAsset]>, to group: inout TaskGroup<(ImageAsset, ImageAsset)?>) {
+                func addNextTask(from iterator: inout IndexingIterator<[ImageAsset]>, to group: inout TaskGroup<Result<(ImageAsset, ImageAsset), ProcessingError>>) {
                     // Skip enqueuing new work under critical memory pressure
                     if memoryMonitor.level == .critical { return }
                     guard let asset = iterator.next() else { return }
                     group.addTask(priority: .utility) {
                         do {
                             let updated = try pipeline.run(on: asset)
-                            return (asset, updated)
+                            return .success((asset, updated))
                         } catch {
-                            return nil
+                            let name = asset.originalURL.lastPathComponent
+                            let reason: ProcessingError.Reason
+                            if let opError = error as? ImageOperationError {
+                                switch opError {
+                                case .loadFailed: reason = .loadFailed
+                                case .exportFailed: reason = .encodeFailed
+                                case .permissionDenied: reason = .permissionDenied
+                                case .backgroundRemovalUnavailable: reason = .unknown(error.localizedDescription)
+                                }
+                            } else {
+                                reason = .unknown(error.localizedDescription)
+                            }
+                            return .failure(ProcessingError(assetName: name, reason: reason))
                         }
                     }
                 }
@@ -96,9 +109,13 @@ extension ImageToolsViewModel {
                 }
 
                 while let result = await group.next() {
-                    if let (original, updated) = result,
-                       let idx = updatedImages.firstIndex(of: original) {
-                        updatedImages[idx] = updated
+                    switch result {
+                    case .success(let (original, updated)):
+                        if let idx = updatedImages.firstIndex(of: original) {
+                            updatedImages[idx] = updated
+                        }
+                    case .failure(let error):
+                        errors.append(error)
                     }
 
                     self.incrementExportProgress()
@@ -114,7 +131,7 @@ extension ImageToolsViewModel {
             }
 
             memoryMonitor.stop()
-            self.finishExport(with: updatedImages)
+            self.finishExport(with: updatedImages, errors: errors)
         }
     }
 }
@@ -130,13 +147,17 @@ extension ImageToolsViewModel {
         exportCompleted += 1
     }
 
-    private func finishExport(with imagesToCommit: [ImageAsset]) {
+    private func finishExport(with imagesToCommit: [ImageAsset], errors: [ProcessingError] = []) {
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.3)) {
             images = imagesToCommit
         }
         isExporting = false
         exportCompleted = 0
         exportTotal = 0
+
+        if !errors.isEmpty {
+            processingErrors = errors
+        }
         
         // Track usage and check for rating prompt
         let processedCount = imagesToCommit.filter { $0.isEdited }.count
