@@ -8,10 +8,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSWindow.allowsAutomaticWindowTabbing = false
         NSApp.servicesProvider = self
         TemporaryFileManager.cleanupTempFiles()
+        Task { @MainActor in
+            FolderMonitorManager.shared.restoreAndStart()
+        }
     }
-    
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        FolderMonitorManager.shared.stopAll()
     }
     
     func application(_ application: NSApplication, open urls: [URL]) {
