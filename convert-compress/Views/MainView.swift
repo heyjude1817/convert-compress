@@ -32,6 +32,7 @@ struct MainView: View {
         .sheet(isPresented: $ratingCoordinator.isPresented) {
             RatingView()
         }
+        .processingErrorAlert(errors: $vm.processingErrors)
     }
 }
 
