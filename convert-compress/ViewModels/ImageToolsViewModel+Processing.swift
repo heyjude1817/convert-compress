@@ -3,6 +3,13 @@ import SwiftUI
 import AppKit
 
 extension ImageToolsViewModel {
+    nonisolated static func shouldScheduleNextExportTask(
+        memoryLevel: MemoryPressureMonitor.PressureLevel,
+        inFlightTaskCount: Int
+    ) -> Bool {
+        memoryLevel != .critical || inFlightTaskCount == 0
+    }
+
     func buildPipeline() -> ProcessingPipeline {
         let keepStructure = UserDefaults.standard.bool(forKey: PreferencesStore.keepFolderStructure)
         let pipeline = PipelineBuilder().build(
@@ -78,12 +85,16 @@ extension ImageToolsViewModel {
                 let adjustedHint = max(2, Int(Double(baseHint) * memoryMonitor.concurrencyMultiplier()))
                 let boost = max(1, Int(Double(adjustedHint) * 1.5))
                 let limit = min(boost, targets.count)
+                var inFlightTasks = 0
 
                 func addNextTask(from iterator: inout IndexingIterator<[ImageAsset]>, to group: inout TaskGroup<Result<(ImageAsset, ImageAsset), ProcessingError>>) {
-                    // Skip enqueuing new work under critical memory pressure
-                    if memoryMonitor.level == .critical { return }
+                    guard Self.shouldScheduleNextExportTask(
+                        memoryLevel: memoryMonitor.level,
+                        inFlightTaskCount: inFlightTasks
+                    ) else { return }
                     guard let asset = iterator.next() else { return }
                     let destinationURL = plannedDestinations[asset.id] ?? pipeline.plannedDestinationURL(for: asset)
+                    inFlightTasks += 1
                     group.addTask(priority: .utility) {
                         do {
                             let updated = try pipeline.run(on: asset, destinationURL: destinationURL)
@@ -99,6 +110,7 @@ extension ImageToolsViewModel {
                 }
 
                 while let result = await group.next() {
+                    inFlightTasks -= 1
                     switch result {
                     case .success(let (original, updated)):
                         if let idx = updatedImages.firstIndex(of: original) {
@@ -111,8 +123,6 @@ extension ImageToolsViewModel {
                     self.incrementExportProgress()
 
                     addNextTask(from: &iterator, to: &group)
-                    // Under critical pressure, wait for all in-flight tasks to finish
-                    // before enqueuing more (effectively serializes remaining work)
                     if memoryMonitor.level == .critical {
                         await Task.yield()
                     }
@@ -240,4 +250,3 @@ extension ImageToolsViewModel {
         alert.runModal()
     }
 }
-

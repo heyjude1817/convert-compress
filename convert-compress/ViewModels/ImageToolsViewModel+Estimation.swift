@@ -1,6 +1,16 @@
 import Foundation
 
 extension ImageToolsViewModel {
+    struct CompressionSummaryMetrics: Equatable {
+        let imageCount: Int
+        let originalBytes: Int
+        let estimatedBytes: Int
+
+        var ratio: Double {
+            1.0 - (Double(estimatedBytes) / Double(originalBytes))
+        }
+    }
+
     private func mergeEstimatedBytes(with map: [UUID: Int]) {
         estimatedBytes.merge(map) { _, new in new }
     }
@@ -32,24 +42,42 @@ extension ImageToolsViewModel {
         images.compactMap { estimatedBytes[$0.id] }.reduce(0, +)
     }
 
+    var compressionSummaryMetrics: CompressionSummaryMetrics? {
+        guard !images.isEmpty else { return nil }
+
+        var originals = 0
+        var estimates = 0
+
+        for image in images {
+            guard let originalBytes = image.originalFileSizeBytes,
+                  let estimatedBytes = estimatedBytes[image.id] else {
+                return nil
+            }
+            originals += originalBytes
+            estimates += estimatedBytes
+        }
+
+        guard originals > 0, estimates > 0 else { return nil }
+        return CompressionSummaryMetrics(
+            imageCount: images.count,
+            originalBytes: originals,
+            estimatedBytes: estimates
+        )
+    }
+
     /// Compression ratio as a fraction (0.0–1.0). Nil if no data available.
     var compressionRatio: Double? {
-        let original = totalOriginalBytes
-        let estimated = totalEstimatedBytes
-        guard original > 0, estimated > 0 else { return nil }
-        return 1.0 - (Double(estimated) / Double(original))
+        compressionSummaryMetrics?.ratio
     }
 
     /// Human-readable summary like "12.3 MB → 3.4 MB (72% saved)".
     var compressionSummaryText: String? {
-        let original = totalOriginalBytes
-        let estimated = totalEstimatedBytes
-        guard original > 0, estimated > 0 else { return nil }
-        let ratio = compressionRatio ?? 0
+        guard let metrics = compressionSummaryMetrics else { return nil }
+        let ratio = metrics.ratio
         let percent = Int((ratio * 100).rounded())
-        let count = images.count
-        let originalStr = ByteCountFormatter.string(fromByteCount: Int64(original), countStyle: .file)
-        let estimatedStr = ByteCountFormatter.string(fromByteCount: Int64(estimated), countStyle: .file)
+        let count = metrics.imageCount
+        let originalStr = ByteCountFormatter.string(fromByteCount: Int64(metrics.originalBytes), countStyle: .file)
+        let estimatedStr = ByteCountFormatter.string(fromByteCount: Int64(metrics.estimatedBytes), countStyle: .file)
         let delta = percent > 0 ? "-\(percent)%" : percent < 0 ? "+\(abs(percent))%" : "0%"
         let format = count == 1
             ? String(localized: "1 image · %@ → %@ (%@)")
@@ -69,4 +97,3 @@ extension ImageToolsViewModel {
             : String(format: format, count, originalStr, estimatedStr, delta)
     }
 }
-

@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 @testable import convert_compress
 
 final class PipelineNamingTests: XCTestCase {
@@ -79,5 +80,55 @@ final class PipelineNamingTests: XCTestCase {
             exportDir.appendingPathComponent("first/photo.png").standardizedFileURL.path,
             exportDir.appendingPathComponent("second/photo.png").standardizedFileURL.path,
         ])
+    }
+
+    func testSequentialRunsWithSharedPlanDoNotOverwriteMonitoredBatch() throws {
+        let exportDir = tempDir.appendingPathComponent("export")
+        try FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
+
+        let firstURL = try makePNG(named: "photo-a.png")
+        let secondURL = try makePNG(named: "photo-b.png")
+        let assets = [ImageAsset(url: firstURL), ImageAsset(url: secondURL)]
+
+        let config = ProcessingConfiguration(
+            resizeMode: .resize,
+            resizeWidth: "",
+            resizeHeight: "",
+            resizeLongEdge: "",
+            selectedFormat: ImageFormat(utType: .png),
+            compressionPercent: 1,
+            flipV: false,
+            removeMetadata: false,
+            removeBackground: false,
+            namingTemplate: NamingTemplate(isEnabled: true, pattern: "output")
+        )
+        let pipeline = PipelineBuilder().build(configuration: config, exportDirectory: exportDir)
+        let plan = pipeline.plannedDestinationURLs(for: assets)
+
+        for asset in assets {
+            let destinationURL = try XCTUnwrap(plan[asset.id])
+            _ = try pipeline.run(on: asset, destinationURL: destinationURL)
+        }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: exportDir.appendingPathComponent("output.png").path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: exportDir.appendingPathComponent("output_1.png").path))
+    }
+
+    private func makePNG(named name: String) throws -> URL {
+        let image = NSImage(size: NSSize(width: 10, height: 10))
+        image.lockFocus()
+        NSColor.systemGreen.setFill()
+        NSBezierPath(rect: NSRect(x: 0, y: 0, width: 10, height: 10)).fill()
+        image.unlockFocus()
+
+        guard let tiff = image.tiffRepresentation,
+              let rep = NSBitmapImageRep(data: tiff),
+              let data = rep.representation(using: .png, properties: [:]) else {
+            throw XCTSkip("Failed to create PNG fixture")
+        }
+
+        let url = tempDir.appendingPathComponent(name)
+        try data.write(to: url)
+        return url
     }
 }

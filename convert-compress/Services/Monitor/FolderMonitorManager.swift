@@ -131,9 +131,12 @@ final class FolderMonitorManager: ObservableObject {
             // Ensure output directory exists
             try? FileManager.default.createDirectory(at: exportDir, withIntermediateDirectories: true)
 
-            for url in urls {
-                let asset = ImageAsset(url: url)
-                _ = try? pipeline.run(on: asset)
+            let assets = urls.map(ImageAsset.init(url:))
+            let plannedDestinations = pipeline.plannedDestinationURLs(for: assets)
+
+            for asset in assets {
+                let destinationURL = plannedDestinations[asset.id] ?? pipeline.plannedDestinationURL(for: asset)
+                _ = try? pipeline.run(on: asset, destinationURL: destinationURL)
             }
         }
     }
