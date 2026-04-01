@@ -47,11 +47,12 @@ final class ImageToolsViewModel: ObservableObject {
     @Published var recentFormats: [ImageFormat] = []
     
     // MARK: - Transform Settings
-    
+
     @Published var compressionPercent: Double = 0.8
     @Published var flipV: Bool = false
     @Published var removeBackground: Bool = false
     @Published var removeMetadata: Bool = false
+    @Published var namingTemplate: NamingTemplate = NamingTemplate()
     
     // MARK: - Presets
     
@@ -63,10 +64,11 @@ final class ImageToolsViewModel: ObservableObject {
     var estimationTask: Task<Void, Never>? = nil
     
     // MARK: - Export Progress
-    
+
     @Published var isExporting: Bool = false
     @Published var exportCompleted: Int = 0
     @Published var exportTotal: Int = 0
+    @Published var processingErrors: [ProcessingError] = []
     
     var exportFraction: Double {
         guard isExporting, exportTotal > 0 else { return 0 }
@@ -118,7 +120,8 @@ final class ImageToolsViewModel: ObservableObject {
             compressionPercent: caps?.supportsQuality == false ? 0 : compressionPercent,
             flipV: flipV,
             removeMetadata: caps?.supportsMetadata == false ? false : removeMetadata,
-            removeBackground: removeBackground
+            removeBackground: removeBackground,
+            namingTemplate: namingTemplate.isEnabled ? namingTemplate : nil
         )
     }
     

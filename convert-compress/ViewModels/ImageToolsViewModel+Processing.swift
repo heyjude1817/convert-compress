@@ -3,6 +3,13 @@ import SwiftUI
 import AppKit
 
 extension ImageToolsViewModel {
+    nonisolated static func shouldScheduleNextExportTask(
+        memoryLevel: MemoryPressureMonitor.PressureLevel,
+        inFlightTaskCount: Int
+    ) -> Bool {
+        memoryLevel != .critical || inFlightTaskCount == 0
+    }
+
     func buildPipeline() -> ProcessingPipeline {
         let keepStructure = UserDefaults.standard.bool(forKey: PreferencesStore.keepFolderStructure)
         let pipeline = PipelineBuilder().build(
@@ -45,13 +52,14 @@ extension ImageToolsViewModel {
         let pipeline = buildPipeline()
         let targets = images
         guard !targets.isEmpty else { return }
+        let plannedDestinations = pipeline.plannedDestinationURLs(for: targets)
 
         // Preflight replace confirmation (single dialog for all files)
-        if !preflightReplaceIfNecessary(pipeline: pipeline, targets: targets) {
+        if !preflightReplaceIfNecessary(targets: targets, plannedDestinations: plannedDestinations) {
             return
         }
 
-        let directories = uniqueDestinationDirectories(for: targets, pipeline: pipeline)
+        let directories = uniqueDestinationDirectories(for: targets, plannedDestinations: plannedDestinations)
 
         Task(priority: .userInitiated) { [weak self] in
             guard let self else { return }
@@ -67,22 +75,32 @@ extension ImageToolsViewModel {
 
             self.beginExport(total: targets.count)
 
-            let hint = self.recommendedConcurrency()
+            let baseHint = self.recommendedConcurrency()
+            let memoryMonitor = MemoryPressureMonitor()
             var updatedImages = self.imagesSnapshot()
+            var errors: [ProcessingError] = []
 
-            await withTaskGroup(of: (ImageAsset, ImageAsset)?.self) { group in
+            await withTaskGroup(of: Result<(ImageAsset, ImageAsset), ProcessingError>.self) { group in
                 var iterator = targets.makeIterator()
-                let boost = max(1, Int(Double(hint) * 1.5))
+                let adjustedHint = max(2, Int(Double(baseHint) * memoryMonitor.concurrencyMultiplier()))
+                let boost = max(1, Int(Double(adjustedHint) * 1.5))
                 let limit = min(boost, targets.count)
+                var inFlightTasks = 0
 
-                func addNextTask(from iterator: inout IndexingIterator<[ImageAsset]>, to group: inout TaskGroup<(ImageAsset, ImageAsset)?>) {
+                func addNextTask(from iterator: inout IndexingIterator<[ImageAsset]>, to group: inout TaskGroup<Result<(ImageAsset, ImageAsset), ProcessingError>>) {
+                    guard Self.shouldScheduleNextExportTask(
+                        memoryLevel: memoryMonitor.level,
+                        inFlightTaskCount: inFlightTasks
+                    ) else { return }
                     guard let asset = iterator.next() else { return }
+                    let destinationURL = plannedDestinations[asset.id] ?? pipeline.plannedDestinationURL(for: asset)
+                    inFlightTasks += 1
                     group.addTask(priority: .utility) {
                         do {
-                            let updated = try pipeline.run(on: asset)
-                            return (asset, updated)
+                            let updated = try pipeline.run(on: asset, destinationURL: destinationURL)
+                            return .success((asset, updated))
                         } catch {
-                            return nil
+                            return .failure(ProcessingError.from(error, assetName: asset.originalURL.lastPathComponent))
                         }
                     }
                 }
@@ -92,19 +110,28 @@ extension ImageToolsViewModel {
                 }
 
                 while let result = await group.next() {
-                    if let (original, updated) = result,
-                       let idx = updatedImages.firstIndex(of: original) {
-                        updatedImages[idx] = updated
+                    inFlightTasks -= 1
+                    switch result {
+                    case .success(let (original, updated)):
+                        if let idx = updatedImages.firstIndex(of: original) {
+                            updatedImages[idx] = updated
+                        }
+                    case .failure(let error):
+                        errors.append(error)
                     }
 
                     self.incrementExportProgress()
 
                     addNextTask(from: &iterator, to: &group)
+                    if memoryMonitor.level == .critical {
+                        await Task.yield()
+                    }
                     await Task.yield()
                 }
             }
 
-            self.finishExport(with: updatedImages)
+            memoryMonitor.stop()
+            self.finishExport(with: updatedImages, errors: errors)
         }
     }
 }
@@ -120,13 +147,17 @@ extension ImageToolsViewModel {
         exportCompleted += 1
     }
 
-    private func finishExport(with imagesToCommit: [ImageAsset]) {
+    private func finishExport(with imagesToCommit: [ImageAsset], errors: [ProcessingError] = []) {
         withAnimation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.3)) {
             images = imagesToCommit
         }
         isExporting = false
         exportCompleted = 0
         exportTotal = 0
+
+        if !errors.isEmpty {
+            processingErrors = errors
+        }
         
         // Track usage and check for rating prompt
         let processedCount = imagesToCommit.filter { $0.isEdited }.count
@@ -146,9 +177,9 @@ extension ImageToolsViewModel {
     }
 
     /// Returns true if export should proceed, false if user cancelled.
-    private func preflightReplaceIfNecessary(pipeline: ProcessingPipeline, targets: [ImageAsset]) -> Bool {
+    private func preflightReplaceIfNecessary(targets: [ImageAsset], plannedDestinations: [UUID: URL]) -> Bool {
         guard !targets.isEmpty else { return true }
-        let planned: [URL] = targets.map { pipeline.plannedDestinationURL(for: $0) }
+        let planned: [URL] = targets.compactMap { plannedDestinations[$0.id] }
         // Only unique destinations matter for conflict check
         let uniquePlanned = Array(Set(planned))
         let fm = FileManager.default
@@ -196,8 +227,8 @@ extension ImageToolsViewModel {
         return presentAlert()
     }
 
-    func uniqueDestinationDirectories(for targets: [ImageAsset], pipeline: ProcessingPipeline) -> [URL] {
-        let destinations = targets.map { pipeline.plannedDestinationURL(for: $0).deletingLastPathComponent().standardizedFileURL }
+    func uniqueDestinationDirectories(for targets: [ImageAsset], plannedDestinations: [UUID: URL]) -> [URL] {
+        let destinations = targets.compactMap { plannedDestinations[$0.id]?.deletingLastPathComponent().standardizedFileURL }
         var seen: Set<URL> = []
         var result: [URL] = []
         for directory in destinations {
@@ -219,5 +250,3 @@ extension ImageToolsViewModel {
         alert.runModal()
     }
 }
-
-

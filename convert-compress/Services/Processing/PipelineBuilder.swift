@@ -8,6 +8,7 @@ struct PipelineBuilder {
         pipeline.folderStructureRoot = folderStructureRoot
         pipeline.finalFormat = configuration.selectedFormat
         pipeline.compressionPercent = configuration.compressionPercent
+        pipeline.namingTemplate = configuration.namingTemplate
 
         let widthInt = Int(configuration.resizeWidth)
         let heightInt = Int(configuration.resizeHeight)

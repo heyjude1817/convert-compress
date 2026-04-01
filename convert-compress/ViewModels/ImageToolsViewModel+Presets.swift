@@ -36,6 +36,7 @@ extension ImageToolsViewModel {
         flipV = config.flipV
         removeMetadata = config.removeMetadata
         removeBackground = config.removeBackground
+        namingTemplate = config.namingTemplate ?? NamingTemplate()
         
         if comparisonSelection != nil {
             scheduleComparisonPreviewRefresh()
@@ -71,4 +72,3 @@ extension ImageToolsViewModel {
         PresetsStore.shared.save(presets)
     }
 }
-
