@@ -9,6 +9,7 @@ struct ProcessingPipeline {
     var folderStructureRoot: URL? = nil
     var finalFormat: ImageFormat? = nil
     var compressionPercent: Double? = nil
+    var namingTemplate: NamingTemplate? = nil
 
     mutating func add(_ op: ImageOperation) {
         operations.append(op)
@@ -110,15 +111,31 @@ private extension ProcessingPipeline {
         let fileExtension: String
     }
 
-    func destinationPlan(for asset: ImageAsset, uti: UTType) -> DestinationPlan {
+    func destinationPlan(for asset: ImageAsset, uti: UTType, batchIndex: Int = 0) -> DestinationPlan {
         let currentURL = asset.originalURL
         let ext = ImageIOCapabilities.shared.preferredFilenameExtension(for: uti)
         let tempDirPath = FileManager.default.temporaryDirectory.standardizedFileURL.path
         let isTempSource = currentURL.standardizedFileURL.path.hasPrefix(tempDirPath)
 
+        let originalBase = currentURL.deletingPathExtension().lastPathComponent
+
+        // Apply naming template if enabled
+        let base: String
+        if let template = namingTemplate, template.isEnabled {
+            let context = NamingContext(
+                originalName: originalBase,
+                index: batchIndex + 1,
+                width: asset.originalPixelSize.map { Int($0.width) },
+                height: asset.originalPixelSize.map { Int($0.height) },
+                targetExtension: ext
+            )
+            base = NamingTemplateResolver().resolve(template: template, context: context)
+        } else {
+            base = originalBase
+        }
+
         let destinationURL: URL
         if let exportDir = exportDirectory {
-            let base = currentURL.deletingPathExtension().lastPathComponent
             if let root = folderStructureRoot {
                 let assetDir = currentURL.deletingLastPathComponent().standardizedFileURL
                 let sourcePath = root.standardizedFileURL.path
@@ -134,11 +151,9 @@ private extension ProcessingPipeline {
             }
         } else if isTempSource {
             let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first ?? FileManager.default.homeDirectoryForCurrentUser
-            let base = currentURL.deletingPathExtension().lastPathComponent
             destinationURL = downloadsDir.appendingPathComponent(base + "." + ext)
         } else {
             let dir = currentURL.deletingLastPathComponent()
-            let base = currentURL.deletingPathExtension().lastPathComponent
             destinationURL = dir.appendingPathComponent(base + "." + ext)
         }
 
