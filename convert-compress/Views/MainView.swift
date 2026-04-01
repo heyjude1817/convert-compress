@@ -6,6 +6,7 @@ struct MainView: View {
     @EnvironmentObject private var vm: ImageToolsViewModel
     @Bindable private var paywallCoordinator = PaywallCoordinator.shared
     @Bindable private var ratingCoordinator = RatingCoordinator.shared
+    @State private var showFolderMonitor = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -33,6 +34,12 @@ struct MainView: View {
             RatingView()
         }
         .processingErrorAlert(errors: $vm.processingErrors)
+        .sheet(isPresented: $showFolderMonitor) {
+            FolderMonitorSettingsView { showFolderMonitor = false }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showFolderMonitorSettings)) { _ in
+            showFolderMonitor = true
+        }
     }
 }
 
